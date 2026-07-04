@@ -1,12 +1,11 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { Sky } from '@react-three/drei'
 import { useEffect } from 'react'
 
-import { inputState, useGameStore, ZONES } from '@/lib/game-store'
-import { City, PollutionZone } from '@/components/game/city'
-import { Cyclist } from '@/components/game/cyclist'
+import { inputState, useGameStore } from '@/components/game/store'
+import { VoxelCyclist } from '@/components/game/voxel-cyclist'
+import { VoxelWorld } from '@/components/game/voxel-world'
 
 const KEY_MAP: Record<string, keyof typeof inputState> = {
   KeyW: 'forward',
@@ -20,7 +19,7 @@ const KEY_MAP: Record<string, keyof typeof inputState> = {
 }
 
 export function GameScene() {
-  const cleaned = useGameStore((s) => s.cleaned)
+  const helmetColor = useGameStore((s) => s.helmetColor)
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -43,44 +42,31 @@ export function GameScene() {
     }
   }, [])
 
-  const cleanedFlags = ZONES.map((z) => cleaned[z.id])
-
   return (
     <Canvas
       shadows
-      // Low device pixel ratio for the chunky, retro low-fi render look
-      dpr={[0.55, 0.75]}
-      camera={{ position: [0, 6, -10], fov: 60 }}
+      dpr={[0.45, 0.6]}
+      camera={{ position: [0, 6, -10], fov: 55 }}
       className="[image-rendering:pixelated]"
     >
-      <color attach="background" args={['#a8c4d4']} />
-      <Sky sunPosition={[80, 40, -60]} turbidity={6} rayleigh={2} />
-      <fog attach="fog" args={['#b9c9c2', 60, 210]} />
+      <color attach="background" args={['#c084fc']} />
+      <fog attach="fog" args={['#f0abfc', 40, 170]} />
 
-      <ambientLight intensity={0.55} />
+      <ambientLight intensity={0.65} />
       <directionalLight
-        position={[60, 80, -40]}
-        intensity={1.6}
+        position={[40, 70, -40]}
+        intensity={1.4}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-        shadow-camera-left={-90}
-        shadow-camera-right={90}
-        shadow-camera-top={90}
-        shadow-camera-bottom={-90}
+        shadow-camera-left={-100}
+        shadow-camera-right={100}
+        shadow-camera-top={100}
+        shadow-camera-bottom={-100}
       />
 
-      <City cleanedFlags={cleanedFlags} />
-      {ZONES.map((zone, i) => (
-        <PollutionZone
-          key={zone.id}
-          position={zone.position}
-          radius={zone.radius}
-          gateRotation={zone.gateRotation}
-          cleaned={cleanedFlags[i]}
-        />
-      ))}
-      <Cyclist />
+      <VoxelWorld />
+      <VoxelCyclist helmetColor={helmetColor} />
     </Canvas>
   )
 }
