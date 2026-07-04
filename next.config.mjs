@@ -6,6 +6,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  outputFileTracingExcludes: {
+    '*': ['public/models/**/*'],
+  },
 }
 
 export default nextConfig
