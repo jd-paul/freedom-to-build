@@ -27,7 +27,7 @@ function mulberry32(seed: number) {
   }
 }
 
-function Outline({
+export function Outline({
   size,
   position,
   rotation,

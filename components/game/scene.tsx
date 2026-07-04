@@ -1,10 +1,15 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
+import { BoroughGates } from '@/components/game/borough-gates'
+import { Collectibles } from '@/components/game/collectibles'
+import { GameLoop } from '@/components/game/game-loop'
+import { Hazards } from '@/components/game/hazards'
+import { Landmarks } from '@/components/game/landmarks'
 import { inputState, useGameStore } from '@/components/game/store'
-import { VoxelCyclist } from '@/components/game/voxel-cyclist'
+import { VoxelCyclist, type CyclistHandle } from '@/components/game/voxel-cyclist'
 import { VoxelWorld } from '@/components/game/voxel-world'
 
 const KEY_MAP: Record<string, keyof typeof inputState> = {
@@ -20,6 +25,7 @@ const KEY_MAP: Record<string, keyof typeof inputState> = {
 
 export function GameScene() {
   const helmetColor = useGameStore((s) => s.helmetColor)
+  const cyclistRef = useRef<CyclistHandle>(null)
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -66,7 +72,12 @@ export function GameScene() {
       />
 
       <VoxelWorld />
-      <VoxelCyclist helmetColor={helmetColor} />
+      <BoroughGates />
+      <Landmarks />
+      <Collectibles />
+      <Hazards />
+      <VoxelCyclist ref={cyclistRef} helmetColor={helmetColor} />
+      <GameLoop cyclistRef={cyclistRef} />
     </Canvas>
   )
 }
