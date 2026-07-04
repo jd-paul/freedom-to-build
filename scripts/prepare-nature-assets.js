@@ -24,6 +24,20 @@ function isNormalMap(name) {
   return /normal/i.test(name)
 }
 
+function walkAndReplaceTextureIndices(obj, indexMap) {
+  if (Array.isArray(obj)) {
+    obj.forEach((item) => walkAndReplaceTextureIndices(item, indexMap))
+  } else if (obj && typeof obj === 'object') {
+    for (const key of Object.keys(obj)) {
+      if (key === 'index' && typeof obj[key] === 'number' && indexMap.has(obj[key])) {
+        obj[key] = indexMap.get(obj[key])
+      } else {
+        walkAndReplaceTextureIndices(obj[key], indexMap)
+      }
+    }
+  }
+}
+
 function prepareModel(name) {
   const gltfPath = path.join(SOURCE_DIR, `${name}.gltf`)
   const binPath = path.join(SOURCE_DIR, `${name}.bin`)
@@ -55,7 +69,7 @@ function prepareModel(name) {
     })
   }
 
-  // Remove normalTexture references from materials
+  // Remove normalTexture references from materials before reindexing
   if (gltf.materials) {
     gltf.materials.forEach((mat) => {
       if (mat.normalTexture !== undefined) {
@@ -64,32 +78,45 @@ function prepareModel(name) {
     })
   }
 
-  // Filter out normal textures and images, keep remaining images URIs to copy
-  const keptImages = []
+  // Build old -> new texture index map
+  const textureIndexMap = new Map()
+  const keptTextures = []
+
+  if (gltf.textures) {
+    gltf.textures.forEach((tex, oldIdx) => {
+      if (!normalTextureIndices.has(oldIdx)) {
+        textureIndexMap.set(oldIdx, keptTextures.length)
+        keptTextures.push(tex)
+      }
+    })
+    gltf.textures = keptTextures
+  }
+
+  // Build old -> new image index map
   const imageIndexMap = new Map()
+  const keptImages = []
 
   if (gltf.images) {
-    gltf.images.forEach((img, idx) => {
-      if (!normalImageIndices.has(idx)) {
-        imageIndexMap.set(idx, keptImages.length)
+    gltf.images.forEach((img, oldIdx) => {
+      if (!normalImageIndices.has(oldIdx)) {
+        imageIndexMap.set(oldIdx, keptImages.length)
         keptImages.push(img)
       }
     })
     gltf.images = keptImages
   }
 
-  const keptTextures = []
-  const textureIndexMap = new Map()
-
+  // Update texture sources to point to new image indices
   if (gltf.textures) {
-    gltf.textures.forEach((tex, idx) => {
-      if (!normalTextureIndices.has(idx)) {
-        textureIndexMap.set(idx, keptTextures.length)
-        keptTextures.push({ ...tex, source: imageIndexMap.get(tex.source) })
+    gltf.textures.forEach((tex) => {
+      if (typeof tex.source === 'number') {
+        tex.source = imageIndexMap.get(tex.source)
       }
     })
-    gltf.textures = keptTextures
   }
+
+  // Update all texture index references throughout the glTF
+  walkAndReplaceTextureIndices(gltf, textureIndexMap)
 
   // Write modified glTF
   fs.mkdirSync(TARGET_DIR, { recursive: true })
@@ -114,6 +141,7 @@ function prepareModel(name) {
   console.log(`Prepared ${name}`)
 }
 
+fs.rmSync(TARGET_DIR, { recursive: true, force: true })
 MODELS.forEach(prepareModel)
 
 const totalSize = fs
